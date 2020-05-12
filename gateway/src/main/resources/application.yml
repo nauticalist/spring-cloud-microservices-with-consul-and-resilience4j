@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    consul:
+      discovery:
+        instance-id: ${spring.application.name}.${random.value}
+    loadbalancer:
+      ribbon:
+        enabled: true
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+            - GET
+      routes:
+        - id: red
+          uri: lb://red-service/
+          predicates:
+          - Path=/red/**
+          filters:
+          - RewritePath=/red/(?<path>.*), /$\{path}
+          - name: CircuitBreaker
+            args:
+              name: mycircuitbreaker
+              fallbackUri: forward:/fallback
+        - id: blue
+          uri: lb://blue-service/
+          predicates:
+          - Path=/blue/**
+          filters:
+          - RewritePath=/blue/(?<path>.*), /$\{path}
+          - name: CircuitBreaker
+            args:
+              name: mycircuitbreaker
+              fallbackUri: forward:/fallback
+       
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - "*"
+server:
+  port: 7000
